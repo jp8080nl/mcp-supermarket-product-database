@@ -1,0 +1,46 @@
+services:
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build  # Use build stage for development
+    volumes:
+      # Mount source code for hot reload
+      - ./src:/app/src:ro
+      - ./dist:/app/dist
+      # SQLite data persistence
+      - mcp-data:/app/data
+      # Mount local node_modules to avoid rebuilding
+      - ./node_modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+      # Supabase connection (to be configured)
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      # SQLite configuration
+      - SQLITE_DB_PATH=/app/data/mcp-cache.db
+      # MCP configuration
+      - MCP_LOG_LEVEL=debug
+    command: npm run dev
+    # Uncomment if MCP server needs port exposure
+    # ports:
+    #   - "3000:3000"
+
+  # Development utilities
+  mcp-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: build
+    volumes:
+      - ./:/app
+      - mcp-data:/app/data
+    environment:
+      - NODE_ENV=development
+    command: /bin/sh
+    profiles:
+      - tools
+
+volumes:
+  mcp-data:
+    driver: local
