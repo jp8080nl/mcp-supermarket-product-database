@@ -23,7 +23,7 @@
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.4",
-    "sqlite3": "^5.1.7",
+    "@supabase/supabase-js": "^2.49.8",
     "zod": "^3.24.1"
   },
   "devDependencies": {
