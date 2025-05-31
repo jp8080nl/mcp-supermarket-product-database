@@ -6,12 +6,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is an MCP (Model Context Protocol) server for a supermarket price comparison system targeting Dutch supermarkets (Albert Heijn and Jumbo). The system collects, stores, and provides access to product and pricing data, tracking price developments over time.
 
+**IMPORTANT: Server-Side Architecture Decision (Updated)**
+- This MCP server runs on a cloud server, NOT on user's local machines
+- Direct connection to Supabase (no local SQLite caching needed)
+- Users connect to the MCP server via MCP client configuration
+- Server-to-server communication with Supabase for optimal performance
+
 The broader project architecture (from PRD) includes:
 - Python scrapers for data collection from supermarket APIs
 - n8n for automation/orchestration
 - Supabase/PostgreSQL for primary data storage
 - Vue.js frontend for user interface
-- This MCP server acts as an interface layer for data access and management
+- This MCP server acts as a cloud-hosted interface layer for data access
 
 ## Key Commands
 
@@ -36,10 +42,10 @@ The complete supermarket price comparison system uses:
 ### This MCP Server Technology Stack
 This specific repository implements the MCP server component using:
 - **MCP SDK** (`@modelcontextprotocol/sdk`) - For building the MCP server
-- **SQLite3** - Local database (likely for caching/local operations while Supabase is the main data store)
+- **Supabase Client** - Direct connection to Supabase (no SQLite needed)
 - **Zod** - Schema validation for API inputs/outputs
 - **TypeScript** - Type-safe development with ES modules
-- **Docker** - For containerization (following the overall system architecture approach)
+- **Docker** - For containerization and cloud deployment
 
 ### Database Schema (from PRD)
 
@@ -96,19 +102,21 @@ The system uses four main tables with the following structure:
 
 ### MCP Server Responsibilities
 
-This MCP server should provide tools for:
+This MCP server provides tools for:
 - Querying product information across supermarkets
 - Searching products by name, brand, or barcode
 - Retrieving current and historical prices
 - Comparing prices between supermarkets
-- Managing local SQLite cache of frequently accessed data
-- Potentially triggering data refresh operations
+- Direct queries to Supabase for real-time data
+- Serving multiple concurrent MCP client connections
 
 ### Security Considerations
 
-- The MCP server should only have read access to the main database
+- The MCP server uses Supabase anon key (read-only access)
 - No direct modification of product/price data through MCP tools
-- Data modifications are handled by the Python scrapers with appropriate credentials
+- Data modifications are handled by the Python scrapers with service role key
+- Server-side deployment keeps credentials secure
+- Consider implementing rate limiting per client connection
 
 ## Development Notes
 
@@ -117,3 +125,11 @@ This MCP server should provide tools for:
 - Main entry point: `src/index.ts`
 - Built files output to `dist/` directory
 - Release 1 assumes national pricing (no per-branch price variations)
+
+## Deployment Architecture
+
+- **Server-side deployment** - MCP server runs on cloud infrastructure
+- **No local installation** - Users configure MCP clients to connect to server endpoint
+- **Scalable** - Can serve multiple concurrent users
+- **Direct Supabase access** - No need for local caching layer
+- **Docker-based** - Containerized for easy deployment and scaling

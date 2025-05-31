@@ -10,7 +10,7 @@ This MCP server provides tools for:
 - Retrieving current and historical pricing data
 - Finding supermarket locations
 
-The server uses SQLite for local caching and connects to a Supabase/PostgreSQL database for the main data store.
+The server connects directly to a Supabase/PostgreSQL database for real-time data access. It's designed to run on a cloud server, with MCP clients connecting remotely.
 
 ## Prerequisites
 
