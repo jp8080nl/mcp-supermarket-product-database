@@ -49,6 +49,7 @@ Once your project is ready:
    ```env
    SUPABASE_URL=https://[your-project-id].supabase.co
    SUPABASE_ANON_KEY=[your-anon-key]
+   SUPABASE_DB_PASSWORD=[your-database-password]  # Optional - for automated migrations
    ```
 
 3. Run the setup script:

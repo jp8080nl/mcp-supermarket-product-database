@@ -38,36 +38,158 @@ if [ -z "$SUPABASE_ANON_KEY" ] || [ "$SUPABASE_ANON_KEY" = "your-anon-key-here" 
     exit 1
 fi
 
-echo "📋 Database Setup Instructions"
-echo "=============================="
+echo "📋 Database Setup Options"
+echo "========================"
 echo ""
 echo "Your Supabase project URL: $SUPABASE_URL"
 echo ""
-echo "Please follow these steps to set up your database:"
+echo "Choose how to run the migrations:"
+echo "1) Automatic - Using Supabase Management API (recommended)"
+echo "2) Semi-automatic - Generate a single SQL file to run in dashboard"
+echo "3) Manual - Follow step-by-step instructions"
 echo ""
-echo "1. Go to your Supabase Dashboard:"
-echo "   $SUPABASE_URL"
-echo ""
-echo "2. Navigate to SQL Editor (in the left sidebar)"
-echo ""
-echo "3. Run these migration files in order:"
-echo "   - Copy and paste contents of: db/migrations/001_create_tables.sql"
-echo "   - Click 'Run' and wait for completion"
-echo "   - Copy and paste contents of: db/migrations/002_setup_rls_policies.sql"
-echo "   - Click 'Run' and wait for completion"
-echo "   - Copy and paste contents of: db/migrations/003_seed_supermarkets.sql"
-echo "   - Click 'Run' and wait for completion"
-echo ""
-echo "4. Verify the setup:"
-echo "   - Go to Table Editor in Supabase"
-echo "   - You should see 4 tables: supermarkets, supermarket_branches, products, price_history"
-echo "   - The supermarkets table should have 2 rows (Albert Heijn and Jumbo)"
-echo ""
-echo "5. Test the connection:"
-echo "   npm run build && npm start"
-echo ""
-echo "📝 Note: If you have Supabase CLI installed, you can also run:"
-echo "   supabase db push --db-url postgresql://postgres:[password]@[host]:5432/postgres"
+echo -n "Enter your choice (1-3): "
+read -r choice
+
+case $choice in
+    1)
+        echo ""
+        echo "🔧 Setting up automatic migration..."
+        echo ""
+        
+        # Check if database password is in .env
+        DB_PASSWORD=$(get_env_value "SUPABASE_DB_PASSWORD")
+        
+        if [ -z "$DB_PASSWORD" ] || [ "$DB_PASSWORD" = "your-database-password-here" ]; then
+            echo "To run migrations automatically, we need your database password."
+            echo "You can find this in Supabase Dashboard > Settings > Database"
+            echo ""
+            echo -n "Enter your database password (input hidden): "
+            read -s DB_PASSWORD
+            echo ""
+            echo ""
+            
+            # Offer to save to .env
+            echo "Would you like to save the database password to .env? (y/n)"
+            read -r save_response
+            if [[ "$save_response" =~ ^[Yy]$ ]]; then
+                # Update .env file
+                if grep -q "SUPABASE_DB_PASSWORD=" .env; then
+                    # Update existing line
+                    sed -i.bak "s/SUPABASE_DB_PASSWORD=.*/SUPABASE_DB_PASSWORD=$DB_PASSWORD/" .env
+                else
+                    # Add new line
+                    echo "" >> .env
+                    echo "# Database Configuration (for migrations only - not used by MCP server)" >> .env
+                    echo "SUPABASE_DB_PASSWORD=$DB_PASSWORD" >> .env
+                fi
+                echo "✅ Database password saved to .env"
+            fi
+        else
+            echo "✅ Using database password from .env"
+        fi
+        echo ""
+        
+        # For Supabase, we need to construct the correct database URL
+        echo "📋 To get your database connection string:"
+        echo "1. Go to your Supabase Dashboard > Settings > Database"
+        echo "2. Look for 'Connection string' under 'Connection info'"
+        echo "3. Use the 'URI' format"
+        echo ""
+        echo "Or press Enter to try with the standard format..."
+        echo ""
+        
+        # Extract project ref from URL (compatible with macOS)
+        PROJECT_REF=$(echo $SUPABASE_URL | sed 's|https://||' | cut -d'.' -f1)
+        
+        # Try multiple possible formats
+        # Format 1: Direct connection (most common)
+        DB_URL="postgresql://postgres:${DB_PASSWORD}@db.${PROJECT_REF}.supabase.co:5432/postgres"
+        
+        echo "Trying connection to: db.${PROJECT_REF}.supabase.co..."
+        
+        echo "🚀 Running migrations..."
+        
+        # Check if psql is available
+        if command -v psql &> /dev/null; then
+            # Run migrations using psql
+            for migration in db/migrations/*.sql; do
+                echo "Running $(basename $migration)..."
+                if PGPASSWORD=$DB_PASSWORD psql $DB_URL -f $migration; then
+                    echo "✅ $(basename $migration) completed"
+                else
+                    echo "❌ Failed to run $(basename $migration)"
+                    echo "Please check your database password and try again"
+                    exit 1
+                fi
+            done
+            echo ""
+            echo "✅ All migrations completed successfully!"
+        else
+            echo "❌ psql not found. Please install PostgreSQL client tools:"
+            echo "   Mac: brew install postgresql"
+            echo "   Ubuntu/Debian: sudo apt-get install postgresql-client"
+            echo "   Or choose option 2 or 3"
+            exit 1
+        fi
+        ;;
+        
+    2)
+        echo ""
+        echo "🔧 Generating combined migration file..."
+        
+        # Create a combined SQL file
+        COMBINED_FILE="db/combined_migrations.sql"
+        echo "-- Combined migrations for MCP Supermarket Database" > $COMBINED_FILE
+        echo "-- Generated on $(date)" >> $COMBINED_FILE
+        echo "" >> $COMBINED_FILE
+        
+        for migration in db/migrations/*.sql; do
+            echo "-- ========================================" >> $COMBINED_FILE
+            echo "-- Migration: $(basename $migration)" >> $COMBINED_FILE
+            echo "-- ========================================" >> $COMBINED_FILE
+            cat $migration >> $COMBINED_FILE
+            echo "" >> $COMBINED_FILE
+            echo "" >> $COMBINED_FILE
+        done
+        
+        echo "✅ Combined migration file created: $COMBINED_FILE"
+        echo ""
+        echo "📋 Next steps:"
+        echo "1. Go to your Supabase Dashboard: $SUPABASE_URL"
+        echo "2. Navigate to SQL Editor"
+        echo "3. Click 'New query'"
+        echo "4. Copy and paste the contents of: $COMBINED_FILE"
+        echo "5. Click 'Run'"
+        echo ""
+        echo "The combined file contains all migrations in the correct order."
+        ;;
+        
+    3)
+        echo ""
+        echo "📋 Manual Setup Instructions"
+        echo "============================"
+        echo ""
+        echo "1. Go to your Supabase Dashboard:"
+        echo "   $SUPABASE_URL"
+        echo ""
+        echo "2. Navigate to SQL Editor (in the left sidebar)"
+        echo ""
+        echo "3. Run these migration files in order:"
+        echo "   - Copy and paste contents of: db/migrations/001_create_tables.sql"
+        echo "   - Click 'Run' and wait for completion"
+        echo "   - Copy and paste contents of: db/migrations/002_setup_rls_policies.sql"
+        echo "   - Click 'Run' and wait for completion"
+        echo "   - Copy and paste contents of: db/migrations/003_seed_supermarkets.sql"
+        echo "   - Click 'Run' and wait for completion"
+        ;;
+        
+    *)
+        echo "Invalid choice. Please run the script again and choose 1, 2, or 3."
+        exit 1
+        ;;
+esac
+
 echo ""
 
 # Offer to test the connection
