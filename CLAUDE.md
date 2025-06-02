@@ -126,6 +126,32 @@ This MCP server provides tools for:
 - Built files output to `dist/` directory
 - Release 1 assumes national pricing (no per-branch price variations)
 
+## Project Management & Git Best Practices
+
+### Task Management
+- We use **GitHub Issues** to track all tasks, features, and bugs
+- Issues are labeled by component (e.g., `mcp-server`), type (e.g., `feature`, `bug`), and priority
+- Check closed issues to understand completed work
+- Check open issues to see pending features and known issues
+
+### Git Workflow
+- **Always create feature branches** for new work (e.g., `feature/add-product-search`)
+- **Never commit directly to main** - use Pull Requests for all changes
+- **Write clear, descriptive commit messages** following conventional commits format
+- **Keep commits atomic** - one logical change per commit
+- **Run tests before committing** - ensure `npm run build` succeeds
+- **Use GitHub Pull Requests** for code review and merging
+- **Link PRs to Issues** using keywords like "Fixes #123" or "Closes #123"
+- **Squash and merge** PRs to keep main branch history clean
+
+### Pull Request Guidelines
+1. Create PR with descriptive title and summary
+2. Reference related GitHub issue(s)
+3. Ensure all checks pass (builds, tests)
+4. Request review from team members
+5. Address review feedback
+6. Merge only after approval
+
 ## Deployment Architecture
 
 - **Server-side deployment** - MCP server runs on cloud infrastructure
